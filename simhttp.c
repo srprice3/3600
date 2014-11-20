@@ -10,6 +10,11 @@
 #include "simhttp.h"
 
 int fileNum = 0;                 /* Number of files transferred */
+char *newline = "\r\n";
+char *serverName = "Server: simhttp/1.0\r\n";
+char *err404 = "HTTP/1.1 404 NOT FOUND\r\n";
+char *err405 = "HTTP/1.1 405 NOT IMPLEMENTED\r\n";
+char *connClose = "Connection: close\r\n";
 
 int main(int argc, char *argv[])
 {
@@ -25,9 +30,7 @@ int main(int argc, char *argv[])
     char fileName[30];               /* name of file to transfer */
 	char path[50] = "./";            /* optional path to files */
 	
-	char *newline = "\r\n";
-	char *serverName = "Server: simhttp/1.1\r\n";
-	char *err404 = "HTTP/1.1 404 NOT FOUND\r\n";
+	
 	
 
 	if (argc > 4)         /* Test for correct number of parameters */
@@ -69,7 +72,8 @@ int main(int argc, char *argv[])
 	}
 
 	fprintf(stderr, "Port Number = %d, path: %s\n", portNum, path);
-	addDate(outBuffer);
+	//addDate(outBuffer);
+	resp404(outBuffer);
 
 	/* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -148,9 +152,31 @@ int addDate(char *ptr) {
 	strftime(tmp, 100, "%a, %d %b %Y %X\r\n", timeInfo);
 	strcpy(tmp2, "Date: ");
 	strcat(tmp2, tmp);
-	printf("%s", tmp2);
+	//printf("%s", tmp2);
 	charsAdded = strlen(tmp2);
-	printf("added %d chars\n", charsAdded);
+	memcpy(ptr, tmp2, charsAdded);
 	return charsAdded;
 	
+}
+
+void resp404(char *ptr) {
+	char *position = ptr;
+	memcpy(position, err404, strlen(err404));
+	position += strlen(err404);
+	position += addDate(position);
+	memcpy(position, serverName, strlen(serverName));
+	position += strlen(serverName);
+	memcpy(position, connClose, strlen(connClose));
+	printBuffer(ptr, 4);
+}
+
+void printBuffer(char *buf, int lines) {
+	printf("======================BUFFER=========================\n");
+	int nullNum = 0;
+	while (nullNum < lines) {
+		printf("%s", buf);
+		buf += strlen(buf);
+		nullNum ++;
+	}
+	printf("=====================================================\n");
 }
