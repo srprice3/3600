@@ -17,11 +17,11 @@
 #include <signal.h>
 #include <errno.h>
 #include <time.h>
-//#include <getopt.h>
 #include <ctype.h>
 #include <sys/time.h>
 #include <math.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <string.h>     /* for memset() */
 #include <netinet/in.h> /* for in_addr */
 #include <sys/socket.h> /* for socket(), connect(), sendto(), and recvfrom() */
@@ -35,7 +35,12 @@ int readData(void);
 int addDate(char *);  /* gets the local date and inserts a date header string at ptr 
 						 returns number of chars added  */
 
+int addMod(char *, FILE *); /*  gets the file modified date and inserts a Last-Modified 
+								header string at ptr returns number of chars added */
+
+void resp403(char *ptr); /* puts all response info for 403 error into ptr */
 void resp404(char *ptr); /* puts all response info for 404 error into ptr */
+void resp405(char *ptr); /* puts all response info for 405 error into ptr */
 
 void printBuffer(char *buf, int); /* print contents of <int> lines in the buffer */
 
