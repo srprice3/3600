@@ -29,6 +29,27 @@
 #include <stdlib.h>     /* for atoi() and exit() */
 #include <unistd.h>     /* for close(), getopt(), chdir() */
 
+typedef struct {
+    char * method;
+    char * file;
+    char * version;
+    char * host;
+    char * options;
+} http_request_t;
+
+typedef struct {
+    char * version;
+    char * code;
+    char * msg;
+    char ** options;
+} http_response_t;
+
+http_request_t * parseRequest(char * buf);
+http_response_t * generateResponse(http_request_t * req);
+char * packResponse(http_response_t * resp);
+void outputLog(http_request_t * req,http_response_t * resp);
+char * generateResponse(char * buf,char * dir);
+
 
 int readData(void);
 
