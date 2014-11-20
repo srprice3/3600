@@ -12,8 +12,9 @@
 int fileNum = 0;                 /* Number of files transferred */
 char *newline = "\r\n";
 char *serverName = "Server: simhttp/1.0\r\n";
+char *err403 = "HTTP/1.1 403 FORBIDDEN\r\n";
 char *err404 = "HTTP/1.1 404 NOT FOUND\r\n";
-char *err405 = "HTTP/1.1 405 NOT IMPLEMENTED\r\n";
+char *err405 = "HTTP/1.1 405 METHOD NOT ALLOWED\r\n";
 char *connClose = "Connection: close\r\n";
 
 int main(int argc, char *argv[])
@@ -73,7 +74,15 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "Port Number = %d, path: %s\n", portNum, path);
 	//addDate(outBuffer);
+	resp403(outBuffer);
 	resp404(outBuffer);
+	resp405(outBuffer);
+	FILE  *newFile;
+	newFile = fopen("test.txt", "r");
+	addMod(inBuffer, newFile);
+	printBuffer(inBuffer, 1);
+	fclose(newFile);
+	
 
 	/* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -159,10 +168,54 @@ int addDate(char *ptr) {
 	
 }
 
+int addMod(char *ptr, FILE *fp) {
+	int charsAdded = 0;
+	char tmp[256];
+	char tmp2[256];
+	time_t rawTime;
+	struct tm *timeInfo;
+	struct stat fileInfo;
+	int fd;
+	fd = fileno(fp);
+	fstat(fd, &fileInfo);
+	rawTime = fileInfo.st_mtime;
+	timeInfo = localtime(&rawTime);
+	strftime(tmp, 100, "%a, %d %b %Y %X\r\n", timeInfo);
+	strcpy(tmp2, "Last-Modified: ");
+	strcat(tmp2, tmp);
+	//printf("%s", tmp2);
+	charsAdded = strlen(tmp2);
+	memcpy(ptr, tmp2, charsAdded);
+	return charsAdded;
+	
+}
+
+void resp403(char *ptr) {
+	char *position = ptr;
+	memcpy(position, err403, strlen(err403));
+	position += strlen(err403);
+	position += addDate(position);
+	memcpy(position, serverName, strlen(serverName));
+	position += strlen(serverName);
+	memcpy(position, connClose, strlen(connClose));
+	printBuffer(ptr, 4);
+}
+
 void resp404(char *ptr) {
 	char *position = ptr;
 	memcpy(position, err404, strlen(err404));
 	position += strlen(err404);
+	position += addDate(position);
+	memcpy(position, serverName, strlen(serverName));
+	position += strlen(serverName);
+	memcpy(position, connClose, strlen(connClose));
+	printBuffer(ptr, 4);
+}
+
+void resp405(char *ptr) {
+	char *position = ptr;
+	memcpy(position, err405, strlen(err405));
+	position += strlen(err405);
 	position += addDate(position);
 	memcpy(position, serverName, strlen(serverName));
 	position += strlen(serverName);
