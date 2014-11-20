@@ -14,7 +14,7 @@ char *newline = "\r\n";
 char *serverName = "Server: simhttp/1.0\r\n";
 char *err403 = "HTTP/1.1 403 FORBIDDEN\r\n";
 char *err404 = "HTTP/1.1 404 NOT FOUND\r\n";
-char *err405 = "HTTP/1.1 405 METHOD NOT ALLOWED\r\n";
+char *err405 = "HTTP/1.1 405 METHOD NOT ALLOWED\r\nAllow: GET, HEAD\r\n";
 char *connClose = "Connection: close\r\n";
 
 int main(int argc, char *argv[])
@@ -157,8 +157,8 @@ int addDate(char *ptr) {
 	time_t rawTime;
 	struct tm *timeInfo;
 	time(&rawTime);
-	timeInfo = localtime(&rawTime);
-	strftime(tmp, 100, "%a, %d %b %Y %X\r\n", timeInfo);
+	timeInfo = gmtime(&rawTime);
+	strftime(tmp, 100, "%a, %d %b %Y %X GMT\r\n", timeInfo);
 	strcpy(tmp2, "Date: ");
 	strcat(tmp2, tmp);
 	//printf("%s", tmp2);
@@ -179,8 +179,8 @@ int addMod(char *ptr, FILE *fp) {
 	fd = fileno(fp);
 	fstat(fd, &fileInfo);
 	rawTime = fileInfo.st_mtime;
-	timeInfo = localtime(&rawTime);
-	strftime(tmp, 100, "%a, %d %b %Y %X\r\n", timeInfo);
+	timeInfo = gmtime(&rawTime);
+	strftime(tmp, 100, "%a, %d %b %Y %X GMT\r\n", timeInfo);
 	strcpy(tmp2, "Last-Modified: ");
 	strcat(tmp2, tmp);
 	//printf("%s", tmp2);
@@ -220,7 +220,7 @@ void resp405(char *ptr) {
 	memcpy(position, serverName, strlen(serverName));
 	position += strlen(serverName);
 	memcpy(position, connClose, strlen(connClose));
-	printBuffer(ptr, 4);
+	printBuffer(ptr, 5);
 }
 
 void printBuffer(char *buf, int lines) {
