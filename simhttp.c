@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 	}
 
 	fprintf(stderr, "Port Number = %d, path: %s\n", portNum, path);
+	addDate(outBuffer);
 
 	/* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -127,10 +128,29 @@ int main(int argc, char *argv[])
 }
 
 int readData(void) {
-	int n = 0;
-	char c = NULL;
-	while ((n < 1024) && (c != '\n'){
-		c = inBuffer[n];
-	}
+	// int n = 0;
+// 	char *c = NULL;
+// 	while ((n < 1024) && (*c != '\n')){
+// 		c = inBuffer[n];
+// 	}
+	return 0;
+}
+
+int addDate(char *ptr) {
+	int charsAdded = 0;
+	//printf("addDate method\n");
+	char tmp[256];
+	char tmp2[256];
+	time_t rawTime;
+	struct tm *timeInfo;
+	time(&rawTime);
+	timeInfo = localtime(&rawTime);
+	strftime(tmp, 100, "%a, %d %b %Y %X\r\n", timeInfo);
+	strcpy(tmp2, "Date: ");
+	strcat(tmp2, tmp);
+	printf("%s", tmp2);
+	charsAdded = strlen(tmp2);
+	printf("added %d chars\n", charsAdded);
+	return charsAdded;
 	
 }
