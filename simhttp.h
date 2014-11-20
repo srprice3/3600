@@ -29,28 +29,14 @@
 #include <stdlib.h>     /* for atoi() and exit() */
 #include <unistd.h>     /* for close(), getopt(), chdir() */
 
-typedef struct {
-    char * method;
-    char * file;
-    char * version;
-    char * host;
-    char * options;
-} http_request_t;
-
-typedef struct {
-    char * version;
-    char * code;
-    char * msg;
-    char ** options;
-} http_response_t;
-
-http_request_t * parseRequest(char * buf);
-http_response_t * generateResponse(http_request_t * req);
-char * packResponse(http_response_t * resp);
-void outputLog(http_request_t * req,http_response_t * resp);
-char * generateResponse(char * buf,char * dir);
-
 
 int readData(void);
+
+int addDate(char *);  /* gets the local date and inserts a date header string at ptr 
+						 returns number of chars added  */
+
+void resp404(char *ptr); /* puts all response info for 404 error into ptr */
+
+void printBuffer(char *buf, int); /* print contents of <int> lines in the buffer */
 
 #endif
