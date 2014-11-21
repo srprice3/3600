@@ -1,7 +1,7 @@
 /*	simhttp.c  by Stephen Price
 	CpSc 3600 HW 3	Dr. Sekou Remy	Fall 2014
 
-	This program will spawn a simple HTTP server and respond to GET and POST
+	This program will spawn a simple HTTP server and respond to GET and HEAD
 
 	Program usage:	./simhttp <-p optional portNum> <optional path to files>
 
@@ -9,7 +9,6 @@
 
 #include "simhttp.h"
 
-int fileNum = 0;                 /* Number of files transferred */
 char *newline = "\r\n";
 char *serverName = "Server: simhttp/1.0\r\n";
 char *err403 = "HTTP/1.1 403 FORBIDDEN\r\n";
@@ -25,13 +24,14 @@ int main(int argc, char *argv[])
     unsigned int addrLen;            /* Length of address */
     char inBuffer[1024];             /* Buffer for incoming msg */
 	char outBuffer[1024];            /* Buffer for outgoing msg */
+	char fileBuffer[1001];           /* Buffer for sending file */
 	FILE *fp;                        /* pointer to new file */
     unsigned short portNum = 80;     /* Server port */
     int recvMsgSize;                 /* Size of received message */
     char fileName[30];               /* name of file to transfer */
 	char path[50] = "./";            /* optional path to files */
-	
-	
+	char method[10];                 /* HEAD or GET strings    */
+	struct stat st;                  /* used to get file status */
 	
 
 	if (argc > 4)         /* Test for correct number of parameters */
@@ -74,14 +74,14 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "Port Number = %d, path: %s\n", portNum, path);
 	//addDate(outBuffer);
-	resp403(outBuffer);
-	resp404(outBuffer);
-	resp405(outBuffer);
-	FILE  *newFile;
-	newFile = fopen("test.txt", "r");
-	addMod(inBuffer, newFile);
-	printBuffer(inBuffer, 1);
-	fclose(newFile);
+	// resp403(outBuffer);
+// 	resp404(outBuffer);
+// 	resp405(outBuffer);
+// 	FILE  *newFile;
+// 	newFile = fopen("test.txt", "r");
+// 	addMod(inBuffer, newFile);
+// 	printBuffer(inBuffer, 1);
+// 	fclose(newFile);
 	
 
 	/* Create socket */
@@ -131,7 +131,48 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "error in transfer\n");
 				close(connfd);
 			}
+			
+			/* parse inBuffer to get method and set method variable */
 			readData();
+			
+			if (strcmp(method, "HEAD") == 0){
+			/* get filename from request */
+			strcpy(fileName, "test.txt");  // change to real filename
+			/* fill outBuffer with headers */
+			/* send outBuffer and /r/f */
+				
+			}
+			
+			else if (strcmp(method, "GET") == 0){
+				/* get filename from request */
+				/* fill outBuffer with headers */
+				/* send outBuffer and /r/f */
+				/* send file requested */
+				strcpy(fileName, "test.txt");  // change to real filename
+				stat(fileName, st);
+				int fileSize = st.st_size;
+				//printf("file size: %d\n", fileSize);
+				int x;
+				fp = fopen(fileName, "r");
+				if (fp == NULL)
+				{
+					perror ("Error with fopen()");
+				}
+				/*  Loop until EOF  */
+				for(x = 0; x < fileSize/1000; x++)
+				{
+					fread(fileBuffer, 1, 1000, fp);
+					//printf("x: %d\n", x);
+					write(sock, fileBuffer, 1000);
+				}
+				fclose(fp);
+			}
+			
+			else {  
+			/* send error response */
+			
+			}
+			
 			close(connfd);
 		
 		}
