@@ -38,6 +38,7 @@ int addDate(char *);  /* gets the local date and inserts a date header string at
 int addMod(char *, FILE *); /*  gets the file modified date and inserts a Last-Modified 
 								header string at ptr returns number of chars added */
 
+void resp400(char *ptr); /* puts all response info for 400 error into ptr */
 void resp403(char *ptr); /* puts all response info for 403 error into ptr */
 void resp404(char *ptr); /* puts all response info for 404 error into ptr */
 void resp405(char *ptr); /* puts all response info for 405 error into ptr */

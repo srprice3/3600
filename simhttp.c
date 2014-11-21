@@ -11,6 +11,7 @@
 
 char *newline = "\r\n";
 char *serverName = "Server: simhttp/1.0\r\n";
+char *err400 = "HTTP/1.1 400 BAD REQUEST\r\n";
 char *err403 = "HTTP/1.1 403 FORBIDDEN\r\n";
 char *err404 = "HTTP/1.1 404 NOT FOUND\r\n";
 char *err405 = "HTTP/1.1 405 METHOD NOT ALLOWED\r\nAllow: GET, HEAD\r\n";
@@ -133,7 +134,13 @@ int main(int argc, char *argv[])
 			}
 			
 			/* parse inBuffer to get method and set method variable */
+			int host = 0;
 			readData();
+			
+			/* check for host header */
+			if (host == 0){
+				/* send 400 err */
+			}
 			
 			if (strcmp(method, "HEAD") == 0){
 			/* get filename from request */
@@ -230,6 +237,18 @@ int addMod(char *ptr, FILE *fp) {
 	return charsAdded;
 	
 }
+
+void resp400(char *ptr) {
+	char *position = ptr;
+	memcpy(position, err400, strlen(err400));
+	position += strlen(err400);
+	position += addDate(position);
+	memcpy(position, serverName, strlen(serverName));
+	position += strlen(serverName);
+	memcpy(position, connClose, strlen(connClose));
+	printBuffer(ptr, 5);
+}
+
 
 void resp403(char *ptr) {
 	char *position = ptr;
