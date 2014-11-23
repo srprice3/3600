@@ -17,6 +17,7 @@ char *err404 = "HTTP/1.1 404 NOT FOUND\r\n";
 char *err405 = "HTTP/1.1 405 METHOD NOT ALLOWED\r\nAllow: GET, HEAD\r\n";
 char *connClose = "Connection: close\r\n";
 char *cType = "Content-Type: ";   /* used for content-type header  */
+char *cLength = "Content-Length: "; /* used for content-length header */
 
 int main(int argc, char *argv[])
 {
@@ -33,7 +34,7 @@ int main(int argc, char *argv[])
     char fileName[30];               /* name of file to transfer */
 	char path[50] = "./";            /* optional path to files */
 	char method[10];                 /* HEAD or GET strings    */
-	struct stat st;                  /* used to get file status */
+	struct stat *st = NULL;          /* used to get file status */
 	
 
 	if (argc > 4)         /* Test for correct number of parameters */
@@ -157,9 +158,17 @@ int main(int argc, char *argv[])
 				/* send outBuffer and /r/f */
 				/* send file requested */
 				strcpy(fileName, "test.txt");  // change to real filename
+				getMime(fileName);
 				stat(fileName, st);
-				int fileSize = st.st_size;
+				int fileSize = st->st_size;
 				//printf("file size: %d\n", fileSize);
+				
+				/* add # of bytes to cLength header */
+				char sizeString[10];
+				sprintf(sizeString, "%d", fileSize);
+				strcat(cLength, sizeString);
+				strcat(cLength, "\r\n");
+				
 				int x;
 				fp = fopen(fileName, "r");
 				if (fp == NULL)
