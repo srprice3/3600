@@ -142,23 +142,22 @@ int main(int argc, char *argv[])
 			/* check for host header */
 			if (host == 0){
 				/* send 400 err */
+				resp400(outBuffer);
+				write(sock, outBuffer, 1000);
 			}
 			
-			if (strcmp(method, "HEAD") == 0){
-			/* get filename from request */
-			strcpy(fileName, "test.txt");  // change to real filename
-			/* fill outBuffer with headers */
-			/* send outBuffer and /r/f */
+			if ((strcmp(method, "HEAD") == 0)||(strcmp(method, "GET") == 0)){
 				
-			}
-			
-			else if (strcmp(method, "GET") == 0){
 				/* get filename from request */
 				/* fill outBuffer with headers */
 				/* send outBuffer and /r/f */
 				/* send file requested */
 				strcpy(fileName, "test.txt");  // change to real filename
-				getMime(fileName);
+				fp = fopen(fileName, "r");
+				if (fp == NULL)
+					{
+						perror ("Error with fopen()");
+					}
 				stat(fileName, st);
 				int fileSize = st->st_size;
 				//printf("file size: %d\n", fileSize);
@@ -169,25 +168,39 @@ int main(int argc, char *argv[])
 				strcat(cLength, sizeString);
 				strcat(cLength, "\r\n");
 				
-				int x;
-				fp = fopen(fileName, "r");
-				if (fp == NULL)
-				{
-					perror ("Error with fopen()");
+				/* fill outBuffer and send */
+				char *position = outBuffer;
+				memcpy(position, "HTTP/1.1 200 OK\r\n", 17);
+				position += 17;
+				position += addDate(position);
+				memcpy(position, serverName, strlen(serverName));
+				position += strlen(serverName);
+				position += addMod(position, fp);
+				position += getMime(position, fileName);
+				memcpy(position, cLength, strlen(cLength));
+				position += strlen(cLength);
+				memcpy(position, connClose, strlen(connClose));
+				printBuffer(outBuffer, 7);
+				
+				write(sock,outBuffer, 1000);
+				if (strcmp(method, "GET") == 0){
+					int x;
+					
+					/*  Loop until EOF  */
+					for(x = 0; x < fileSize/1000; x++)
+					{
+						fread(fileBuffer, 1, 1000, fp);
+						//printf("x: %d\n", x);
+						write(sock, fileBuffer, 1000);
+					}
+					fclose(fp);
 				}
-				/*  Loop until EOF  */
-				for(x = 0; x < fileSize/1000; x++)
-				{
-					fread(fileBuffer, 1, 1000, fp);
-					//printf("x: %d\n", x);
-					write(sock, fileBuffer, 1000);
-				}
-				fclose(fp);
 			}
 			
 			else {  
-			/* send error response */
-			
+				/* send 405 error response */
+				resp405(outBuffer);
+				write(sock, outBuffer, 1000);
 			}
 			
 			close(connfd);
@@ -293,7 +306,7 @@ void resp405(char *ptr) {
 	printBuffer(ptr, 5);
 }
 
-void getMime(char *fname) {
+int getMime(char *ptr, char *fname) {
 	
 	char *dot = NULL;
 	dot = strchr(fname, '.');
@@ -318,7 +331,8 @@ void getMime(char *fname) {
 	else {
 		strcat(cType, "application/octet-stream\r\n");
 	}
-
+	strcat(ptr, cType);
+	return strlen(cType);
 }
 
 void printBuffer(char *buf, int lines) {

@@ -43,7 +43,8 @@ void resp403(char *ptr); /* puts all response info for 403 error into ptr */
 void resp404(char *ptr); /* puts all response info for 404 error into ptr */
 void resp405(char *ptr); /* puts all response info for 405 error into ptr */
 
-void getMime(char *fname); /* gets mimetype from filename */
+int getMime(char *ptr, char *fn); /* gets mimetype from filename and puts in ptr
+										and returns # of chars added */
 
 void printBuffer(char *buf, int); /* print contents of <int> lines in the buffer */
 
