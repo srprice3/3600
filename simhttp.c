@@ -16,6 +16,7 @@ char *err403 = "HTTP/1.1 403 FORBIDDEN\r\n";
 char *err404 = "HTTP/1.1 404 NOT FOUND\r\n";
 char *err405 = "HTTP/1.1 405 METHOD NOT ALLOWED\r\nAllow: GET, HEAD\r\n";
 char *connClose = "Connection: close\r\n";
+char *cType = "Content-Type: ";   /* used for content-type header  */
 
 int main(int argc, char *argv[])
 {
@@ -281,6 +282,34 @@ void resp405(char *ptr) {
 	position += strlen(serverName);
 	memcpy(position, connClose, strlen(connClose));
 	printBuffer(ptr, 5);
+}
+
+void getMime(char *fname) {
+	
+	char *dot = NULL;
+	dot = strchr(fname, '.');
+	if (strncmp(dot, ".css", 4) == 0){
+		strcat(cType, "text/css\r\n");
+	}
+	else if (strncmp(dot, ".htm", 4) == 0){
+		strcat(cType, "text/html\r\n");
+	}
+	else if (strncmp(dot, ".js", 3) == 0){
+		strcat(cType, "application/javascript\r\n");
+	}
+	else if (strncmp(dot, ".txt", 4) == 0){
+		strcat(cType, "text/plain\r\n");
+	}
+	else if (strncmp(dot, ".jpg", 4) == 0){
+		strcat(cType, "image/jpeg\r\n");
+	}
+	else if (strncmp(dot, ".pdf", 4) == 0){
+		strcat(cType, "application/pdf\r\n");
+	}
+	else {
+		strcat(cType, "application/octet-stream\r\n");
+	}
+
 }
 
 void printBuffer(char *buf, int lines) {
