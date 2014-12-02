@@ -29,6 +29,15 @@
 #include <stdlib.h>     /* for atoi() and exit() */
 #include <unistd.h>     /* for close(), getopt(), chdir() */
 
+typedef struct {
+	char * method;
+	char * filename;
+	char * version;
+	char * filepath;
+	char * full_path;
+	int  host_flag;
+} http_request_t;
+
 
 int readData(void);
 

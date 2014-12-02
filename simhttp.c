@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
 	char path[50] = "./";            /* optional path to files */
 	char method[10];                 /* HEAD or GET strings    */
 	struct stat *st = NULL;          /* used to get file status */
+	http_request_t * req = NULL;
 	
 
 	if (argc > 4)         /* Test for correct number of parameters */
@@ -135,24 +136,35 @@ int main(int argc, char *argv[])
 				close(connfd);
 			}
 			
-			/* parse inBuffer to get method and set method variable */
-			int host = 0;
-			readData();
-			
-			/* check for host header */
-			if (host == 0){
-				/* send 400 err */
-				resp400(outBuffer);
-				write(sock, outBuffer, 1000);
+			req = parseRequest(inBuffer, path);
+
+			if (req->full_path != NULL) {
+				fileName = realpath(req->full_path,NULL);
 			}
-			
-			if ((strcmp(method, "HEAD") == 0)||(strcmp(method, "GET") == 0)){
+
+			if (req->host == 0) {
+				resp400(outBuffer);
+				write(connfd,outBuffer,1024);
+			}
+			else if (errno != ENOENT && strstr(full_path,path) == NULL) {
+				resp403(outBuffer);
+				write(connfd,outBuffer,1024);
+			}
+			else if (errno == ENOENT) {
+				resp404(outBuffer);
+				write(connfd,outBuffer,1024);
+			}
+			else if (strcmp(req->method, "GET") != 0 && strcmp(req->method, "GET") != 0) {
+				resp405(outBuffer);
+				write(connfd,outBuffer,1024);
+			}
+			else {
 				
 				/* get filename from request */
 				/* fill outBuffer with headers */
 				/* send outBuffer and /r/f */
 				/* send file requested */
-				strcpy(fileName, "test.txt");  // change to real filename
+				//strcpy(fileName, resp->full_path);  // change to real filename
 				fp = fopen(fileName, "r");
 				if (fp == NULL)
 					{
@@ -195,14 +207,22 @@ int main(int argc, char *argv[])
 					}
 					fclose(fp);
 				}
+
+				free(fileName);
 			}
 			
-			else {  
-				/* send 405 error response */
-				resp405(outBuffer);
-				write(sock, outBuffer, 1000);
+			if (req->filename != NULL) {
+				free(req->filename);
 			}
-			
+			if (req->filepath != NULL) {
+				free(req->filepath);
+			}
+			if (req->full_path != NULL) {
+				free(req->full_path);
+			}
+
+			free(req);
+
 			close(connfd);
 		
 		}
@@ -344,4 +364,56 @@ void printBuffer(char *buf, int lines) {
 		nullNum ++;
 	}
 	printf("=====================================================\n");
+}
+
+http_request_t * parseRequest(char * buf, char * dir) {
+	http_request_t * req = (http_request_t *)malloc(sizeof(http_request_t));
+	bzero(req,sizeof(http_request_t));
+
+	req->method = NULL;
+	req->filename = NULL;
+	req->version = NULL;
+	req->filepath = NULL;
+	req->host = 0;
+
+	char * line = strtok(buf,"\r\n"), * temp_filename, * endptr;
+	int len = 0;
+
+	if (line == NULL || sscanf(line, "%s %s %s", req->method, temp_filename, req->version) != 3) {
+		return req;
+	}
+
+	endptr = strrchr(temp_filename, '/');
+
+	if (endptr == NULL) {
+		endptr = temp_filename;
+	}
+
+	if (temp_filename[strlen(temp_filename) - 1] == '/') {
+		req->filename = (char *)malloc(strlen("index.html") + 1);
+		bzero(req->filename,strlen(strlen("index.html") + 1);
+		strcpy(req->filename,"index.html");
+	}
+	else {
+		req->filename = (char *)malloc(strlen(endptr) + 1);
+		bzero(req->filename,strlen(strlen(endptr) + 1);
+		strcpy(req->filename,endptr);
+	}
+
+	req->filepath = (char *)malloc(strlen(dir) + strlen(temp_filename) - strlen(endptr));
+	strcpy(temp->filepath, dir);
+	memcpy(req->filepath + strlen(dir),temp_filename, strlen(temp_filename) - strlen(endptr));
+
+	req->full_path = (char *)malloc(strlen(req->filepath) + strlen(filename));
+	bzero(full_path, strlen(req->filepath) + strlen(filename));
+	strcpy(req->full_path, req->filepath);
+	strcat(req->full_path, req->filename);
+
+	while ((line = strtok(NULL, "\r\n")) != NULL && req->host == 0) {
+		if (strstr(line, "Host:") != NULL) {
+			req->host = 1;
+		}
+	}
+
+	return req;
 }
