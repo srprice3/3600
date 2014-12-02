@@ -144,22 +144,27 @@ int main(int argc, char *argv[])
 			fileName = realpath(req->full_path,NULL);
 
 			if (req->host_flag == 0) {
+				fprintf(stderr,"Returning 400\n");
 				resp400(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
-			else if (errno != ENOENT && (strstr(fileName,path) == NULL || errno == EACCES)) {
+			else if (errno != ENOENT && fileName != NULL && (strstr(fileName,path) == NULL || errno == EACCES)) {
+				fprintf(stderr,"Returning 403\n");
 				resp403(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
 			else if (errno == ENOENT) {
+				fprintf(stderr,"Returning 404\n");
 				resp404(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
 			else if (strcmp(req->method, "GET") != 0 && strcmp(req->method, "GET") != 0) {
+				fprintf(stderr,"Returning 405\n");
 				resp405(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
 			else {
+				fprintf(stderr,"Returning 200\n");
 				
 				/* get filename from request */
 				/* fill outBuffer with headers */
@@ -353,6 +358,7 @@ int getMime(char *ptr, char *fname) {
 	else {
 		strcat(cType, "application/octet-stream\r\n");
 	}
+	fprintf(stderr, "MIME Type: %s\n", cType);
 	strcat(ptr, cType);
 	return strlen(cType);
 }
