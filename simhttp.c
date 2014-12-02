@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 				resp400(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
-			else if (errno != ENOENT && strstr(fileName,path) == NULL && errno == EACCES) {
+			else if (errno != ENOENT && (strstr(fileName,path) == NULL || errno == EACCES)) {
 				resp403(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
