@@ -145,31 +145,31 @@ int main(int argc, char *argv[])
 
 			if (req->host_flag == 0) {
 				fprintf(stderr,"Returning 400\n");
-				outputServerInfo(req->method,req->file + strlen(path) + 1,400);
+				outputServerInfo(req->method,400,fileName + strlen(path) + 1);
 				resp400(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
 			else if (errno != ENOENT && fileName != NULL && (strstr(fileName,path) == NULL || errno == EACCES || access(fileName,R_OK) < 0)) {
 				fprintf(stderr,"Returning 403\n");
-				outputServerInfo(req->method,req->file + strlen(path) + 1,403);
+				outputServerInfo(req->method,403,fileName + strlen(path) + 1);
 				resp403(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
 			else if (errno == ENOENT) {
 				fprintf(stderr,"Returning 404\n");
-				outputServerInfo(req->method,req->file + strlen(path) + 1,404);
+				outputServerInfo(req->method,404,fileName + strlen(path) + 1);
 				resp404(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
 			else if (strcmp(req->method, "GET") != 0 && strcmp(req->method, "GET") != 0) {
 				fprintf(stderr,"Returning 405\n");
-				outputServerInfo(req->method,req->file + strlen(path) + 1,405);
+				outputServerInfo(req->method,405,fileName + strlen(path) + 1);
 				resp405(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
 			else {
 				fprintf(stderr,"Returning 200\n");
-				outputServerInfo(req->method,req->file + strlen(path) + 1,200);
+				outputServerInfo(req->method,200,fileName + strlen(path) + 1);
 				
 				/* get filename from request */
 				/* fill outBuffer with headers */
@@ -446,6 +446,7 @@ void outputServerInfo(char * method,int status,char * file) {
 	time_t t = time(NULL);
 	struct tm * datetime = localtime(&t);
 	char timebuf[256];
-	strftime(timebuf, 256, "%a, %d %b %Y %T %Z", datetime)
+	strftime(timebuf, 256, "%a, %d %b %Y %T %Z", datetime);
 	fprintf(stdout,"%s\t%s\t%s\t%d\n",method,file,timebuf,status);
+	fprintf(stderr,"%s\t%s\t%s\t%d\n",method,file,timebuf,status);
 }
