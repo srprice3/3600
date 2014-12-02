@@ -75,6 +75,9 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 	}
+	else {
+		path = realpath(path,NULL);
+	}
 
 	fprintf(stderr, "Port Number = %d, path: %s\n", portNum, path);
 	//addDate(outBuffer);
@@ -370,19 +373,27 @@ http_request_t * parseRequest(char * buf, char * dir) {
 	http_request_t * req = (http_request_t *)malloc(sizeof(http_request_t));
 	bzero(req,sizeof(http_request_t));
 
-	req->method = NULL;
-	req->filename = NULL;
-	req->version = NULL;
-	req->filepath = NULL;
-	req->full_path = NULL;
-	req->host_flag = 0;
+	fprintf(stderr, "Tokenizing the first line: ");
+	char * line = strtok(buf,"\r\n"), * temp_filename, * endptr;
 
-	char * line = strtok(buf,"\r\n"), * temp_filename = NULL, * endptr;
-	int len = 0;
+	req->method = (char *) malloc(strlen(line));
+	req->filename = (char *) malloc(strlen(line));
+	req->version = (char *) malloc(strlen(line));
+	req->filepath = (char *) malloc(strlen(line) + strlen(dir) + 1);
+	req->full_path = (char *) malloc(strlen(line) + strlen(dir));
+	req->host_flag = 0;
+	temp_filename = (char *) malloc(strlen(line));
+
+	bzero(temp_filename,strlen(line));
+
+	fprintf(stderr, "%s\n", line);
 
 	if (line == NULL || sscanf(line, "%s %s %s", req->method, temp_filename, req->version) != 3) {
+		fprintf(stderr, "Failed to scan the first line\n");
 		return req;
 	}
+
+	fprintf(stderr, "Method: %s\nFilename: %s\nVersion: %s\n",req->method,temp_filename,req->version);
 
 	endptr = strrchr(temp_filename, '/');
 
@@ -401,14 +412,16 @@ http_request_t * parseRequest(char * buf, char * dir) {
 		strcpy(req->filename,endptr);
 	}
 
-	req->filepath = (char *)malloc(strlen(dir) + strlen(temp_filename) - strlen(endptr));
 	strcpy(req->filepath, dir);
-	memcpy(req->filepath + strlen(dir),temp_filename, strlen(temp_filename) - strlen(endptr));
+	req->filepath = strcat(req->filepath,"/");
+	memcpy(req->filepath + strlen(dir) + 1,temp_filename, strlen(temp_filename) - strlen(endptr));
 
 	req->full_path = (char *)malloc(strlen(req->filepath) + strlen(req->filename));
 	bzero(req->full_path, strlen(req->filepath) + strlen(req->filename));
 	strcpy(req->full_path, req->filepath);
 	strcat(req->full_path, req->filename);
+
+	free(temp_filename);
 
 	while ((line = strtok(NULL, "\r\n")) != NULL && req->host_flag == 0) {
 		if (strstr(line, "Host:") != NULL) {
