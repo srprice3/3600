@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 				resp400(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
-			else if (errno != ENOENT && strstr(fileName,path) == NULL) {
+			else if (errno != ENOENT && strstr(fileName,path) == NULL && errno == EACCES) {
 				resp403(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
@@ -359,14 +359,14 @@ int getMime(char *ptr, char *fname) {
 }
 
 void printBuffer(char *buf, int lines) {
-	printf("======================BUFFER=========================\n");
+	fprintf(stderr,"======================BUFFER=========================\n");
 	int nullNum = 0;
 	while (nullNum < lines) {
-		printf("%s", buf);
+		fprintf(stderr,"%s", buf);
 		buf += strlen(buf);
 		nullNum ++;
 	}
-	printf("=====================================================\n");
+	fprintf(stderr,"=====================================================\n");
 }
 
 http_request_t * parseRequest(char * buf, char * dir) {
