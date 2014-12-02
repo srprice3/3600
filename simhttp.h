@@ -55,6 +55,8 @@ void resp405(char *ptr); /* puts all response info for 405 error into ptr */
 int getMime(char *ptr, char *fn); /* gets mimetype from filename and puts in ptr
 										and returns # of chars added */
 
+http_request_t * parseRequest(char * buf, char * dir);
+
 void printBuffer(char *buf, int); /* print contents of <int> lines in the buffer */
 
 #endif

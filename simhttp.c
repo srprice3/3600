@@ -29,10 +29,10 @@ int main(int argc, char *argv[])
 	char outBuffer[1024];            /* Buffer for outgoing msg */
 	char fileBuffer[1001];           /* Buffer for sending file */
 	FILE *fp;                        /* pointer to new file */
-    unsigned short portNum = 80;     /* Server port */
+    unsigned short portNum = 8000;     /* Server port */
     int recvMsgSize;                 /* Size of received message */
-    char fileName[30];               /* name of file to transfer */
-	char path[50] = "./";            /* optional path to files */
+    char *fileName = NULL;               /* name of file to transfer */
+	char *path = "./";            /* optional path to files */
 	char method[10];                 /* HEAD or GET strings    */
 	struct stat *st = NULL;          /* used to get file status */
 	http_request_t * req = NULL;
@@ -69,8 +69,8 @@ int main(int argc, char *argv[])
 	}
 	fprintf(stderr, "optind: %d, argc: %d\n", optind, argc);
 	if (optind < argc) {
-		strcpy(path, argv[optind]);
-		if (chdir(path) == -1){
+		path = realpath(argv[optind],NULL);
+		if (path == NULL || chdir(path) == -1){
 			fprintf(stderr, "Error changing to specified directory\n");
 			exit(1);
 		}
@@ -142,11 +142,11 @@ int main(int argc, char *argv[])
 				fileName = realpath(req->full_path,NULL);
 			}
 
-			if (req->host == 0) {
+			if (req->host_flag == 0) {
 				resp400(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
-			else if (errno != ENOENT && strstr(full_path,path) == NULL) {
+			else if (errno != ENOENT && strstr(fileName,path) == NULL) {
 				resp403(outBuffer);
 				write(connfd,outBuffer,1024);
 			}
@@ -374,9 +374,10 @@ http_request_t * parseRequest(char * buf, char * dir) {
 	req->filename = NULL;
 	req->version = NULL;
 	req->filepath = NULL;
-	req->host = 0;
+	req->full_path = NULL;
+	req->host_flag = 0;
 
-	char * line = strtok(buf,"\r\n"), * temp_filename, * endptr;
+	char * line = strtok(buf,"\r\n"), * temp_filename = NULL, * endptr;
 	int len = 0;
 
 	if (line == NULL || sscanf(line, "%s %s %s", req->method, temp_filename, req->version) != 3) {
@@ -391,27 +392,27 @@ http_request_t * parseRequest(char * buf, char * dir) {
 
 	if (temp_filename[strlen(temp_filename) - 1] == '/') {
 		req->filename = (char *)malloc(strlen("index.html") + 1);
-		bzero(req->filename,strlen(strlen("index.html") + 1);
+		bzero(req->filename,strlen("index.html") + 1);
 		strcpy(req->filename,"index.html");
 	}
 	else {
 		req->filename = (char *)malloc(strlen(endptr) + 1);
-		bzero(req->filename,strlen(strlen(endptr) + 1);
+		bzero(req->filename,strlen(endptr) + 1);
 		strcpy(req->filename,endptr);
 	}
 
 	req->filepath = (char *)malloc(strlen(dir) + strlen(temp_filename) - strlen(endptr));
-	strcpy(temp->filepath, dir);
+	strcpy(req->filepath, dir);
 	memcpy(req->filepath + strlen(dir),temp_filename, strlen(temp_filename) - strlen(endptr));
 
-	req->full_path = (char *)malloc(strlen(req->filepath) + strlen(filename));
-	bzero(full_path, strlen(req->filepath) + strlen(filename));
+	req->full_path = (char *)malloc(strlen(req->filepath) + strlen(req->filename));
+	bzero(req->full_path, strlen(req->filepath) + strlen(req->filename));
 	strcpy(req->full_path, req->filepath);
 	strcat(req->full_path, req->filename);
 
-	while ((line = strtok(NULL, "\r\n")) != NULL && req->host == 0) {
+	while ((line = strtok(NULL, "\r\n")) != NULL && req->host_flag == 0) {
 		if (strstr(line, "Host:") != NULL) {
-			req->host = 1;
+			req->host_flag = 1;
 		}
 	}
 
