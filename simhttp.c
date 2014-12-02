@@ -141,9 +141,7 @@ int main(int argc, char *argv[])
 			
 			req = parseRequest(inBuffer, path);
 
-			if (req->full_path != NULL) {
-				fileName = realpath(req->full_path,NULL);
-			}
+			fileName = realpath(req->full_path,NULL);
 
 			if (req->host_flag == 0) {
 				resp400(outBuffer);
@@ -332,7 +330,8 @@ void resp405(char *ptr) {
 int getMime(char *ptr, char *fname) {
 	
 	char *dot = NULL;
-	dot = strchr(fname, '.');
+	dot = strrchr(fname, '.');
+
 	if (strncmp(dot, ".css", 4) == 0){
 		strcat(cType, "text/css\r\n");
 	}
