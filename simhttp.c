@@ -16,27 +16,26 @@ char *err403 = "HTTP/1.1 403 FORBIDDEN\r\n";
 char *err404 = "HTTP/1.1 404 NOT FOUND\r\n";
 char *err405 = "HTTP/1.1 405 METHOD NOT ALLOWED\r\nAllow: GET, HEAD\r\n";
 char *connClose = "Connection: close\r\n";
-char *cType = "Content-Type: ";   /* used for content-type header  */
-char *cLength = "Content-Length: "; /* used for content-length header */
+char cType[50];              /* used for content-type header  */
+char cLength[50];            /* used for content-length header */
 
 int main(int argc, char *argv[])
 {
-    int sock, connfd, fin;           /* Socket, connection file descriptor, finished flag */
+    int sock, connfd;                /* Socket, connection file descriptor, finished flag */
     struct sockaddr_in servAddr;     /* Local address */
     struct sockaddr_in clientAddr;   /* address of client */
     unsigned int addrLen;            /* Length of address */
-    char inBuffer[1024];             /* Buffer for incoming msg */
-	char outBuffer[1024];            /* Buffer for outgoing msg */
-	char fileBuffer[1001];           /* Buffer for sending file */
-	FILE *fp;                        /* pointer to new file */
-    unsigned short portNum = 8000;     /* Server port */
-    int recvMsgSize;                 /* Size of received message */
-    char *fileName = NULL;               /* name of file to transfer */
-	char *path = "./";            /* optional path to files */
-	char method[10];                 /* HEAD or GET strings    */
-	struct stat *st = NULL;          /* used to get file status */
-	http_request_t * req = NULL;
+    char *inBuffer;                  /* Buffer for incoming msg */
+	char *outBuffer;                 /* Buffer for outgoing msg */
+	FILE *fp;                         /* pointer to new file */
+    unsigned short portNum = 8080;    /* Server port */
+    char fileName[256];               /* name of file to transfer */
+	char *path = "./";                /* optional path to files */
+	struct stat *st;                  /* used to get file status */
+	http_request_t *req = NULL;       /* struct with request info  */
 	
+	strcpy(cType, "Content-Type: ");
+	strcpy(cLength, "Content-Length: ");
 
 	if (argc > 4)         /* Test for correct number of parameters */
     {
@@ -67,7 +66,7 @@ int main(int argc, char *argv[])
         		exit(1);
       	}
 	}
-	fprintf(stderr, "optind: %d, argc: %d\n", optind, argc);
+	//fprintf(stderr, "optind: %d, argc: %d\n", optind, argc);
 	if (optind < argc) {
 		path = realpath(argv[optind],NULL);
 		if (path == NULL || chdir(path) == -1){
@@ -79,22 +78,12 @@ int main(int argc, char *argv[])
 		path = realpath(path,NULL);
 	}
 
-	fprintf(stderr, "Port Number = %d, path: %s\n", portNum, path);
-	//addDate(outBuffer);
-	// resp403(outBuffer);
-// 	resp404(outBuffer);
-// 	resp405(outBuffer);
-// 	FILE  *newFile;
-// 	newFile = fopen("test.txt", "r");
-// 	addMod(inBuffer, newFile);
-// 	printBuffer(inBuffer, 1);
-// 	fclose(newFile);
-	
+	fprintf(stderr, "\nStarting server, Port Number = %d, path: %s\n", portNum, path);
 
 	/* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
-        fprintf(stderr, "socket() failed");
+        fprintf(stderr, "socket() failed\n");
 		exit(1);
     }
 
@@ -105,11 +94,11 @@ int main(int argc, char *argv[])
 	servAddr.sin_port = htons(portNum);               /* Local port */
 
 	 
-	fprintf(stderr, "Binding to port %d\n", portNum);  
+	//fprintf(stderr, "Binding to port %d\n", portNum);  
 	/* Bind to the local address */  
 	if (bind(sock, (struct sockaddr *) &servAddr, sizeof(servAddr)) < 0)
 	{
-		fprintf(stderr, "bind() failed");
+		fprintf(stderr, "bind() failed\n");
 		exit(1);
 	}
 
@@ -131,7 +120,15 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			fprintf(stderr, "connection\n");
+			fprintf(stderr, "new connection\n");
+			inBuffer = (char *)calloc(1024, 1);
+			outBuffer = (char *)calloc(5001, 1);
+			st = (struct stat *)calloc(sizeof(struct stat), 1);
+			strcpy(cType, "Content-Type: ");
+			strcpy(cLength, "Content-Length: ");
+			errno = 0;
+			//fprintf(stderr, "ct: %s, cl: %s\n", cType, cLength);
+			//printBuffer(outBuffer, 6);
 			int fin = 1;
 			fin = read(connfd, inBuffer, 1023);
 			if (fin < 0) {
@@ -141,57 +138,55 @@ int main(int argc, char *argv[])
 			
 			req = parseRequest(inBuffer, path);
 
-			fileName = realpath(req->full_path,NULL);
-
+			//fileName = realpath(req->full_path,NULL);
+			strcpy(fileName, req->filename);
+			
+			stat(fileName, st);
+			fprintf(stderr, "stat errno = %d\n", errno);
+			
+			//fprintf(stderr, "host flag %d\n", req->host_flag);
 			if (req->host_flag == 0) {
 				fprintf(stderr,"Returning 400\n");
-				outputServerInfo(req->method,400,fileName + strlen(path) + 1);
+				outputServerInfo(req->method,400,fileName);
 				resp400(outBuffer);
-				write(connfd,outBuffer,1024);
+				printBuffer(outBuffer, 6);
+				write(connfd,outBuffer,128);
 			}
-			else if (errno != ENOENT && fileName != NULL && (strstr(fileName,path) == NULL || errno == EACCES || access(fileName,R_OK) < 0)) {
+			
+			//else if (errno != ENOENT && fileName != NULL && (strstr(fileName,path) == NULL || errno == EACCES || access(fileName,R_OK) < 0)) {
+			else if (errno  == EACCES){
 				fprintf(stderr,"Returning 403\n");
-				outputServerInfo(req->method,403,fileName + strlen(path) + 1);
+				outputServerInfo(req->method,403,fileName);
 				resp403(outBuffer);
-				write(connfd,outBuffer,1024);
+				printBuffer(outBuffer, 6);
+				write(connfd,outBuffer,128);
 			}
 			else if (errno == ENOENT) {
 				fprintf(stderr,"Returning 404\n");
-				outputServerInfo(req->method,404,fileName + strlen(path) + 1);
+				outputServerInfo(req->method,404,fileName);
 				resp404(outBuffer);
-				write(connfd,outBuffer,1024);
+				printBuffer(outBuffer, 6);
+				write(connfd,outBuffer,128);
 			}
-			else if (strcmp(req->method, "GET") != 0 && strcmp(req->method, "GET") != 0) {
+			else if ((strcmp(req->method, "GET") != 0) && (strcmp(req->method, "HEAD") != 0)) {
 				fprintf(stderr,"Returning 405\n");
-				outputServerInfo(req->method,405,fileName + strlen(path) + 1);
+				outputServerInfo(req->method,405,fileName);
 				resp405(outBuffer);
-				write(connfd,outBuffer,1024);
+				printBuffer(outBuffer, 6);
+				write(connfd,outBuffer,128);
 			}
 			else {
 				fprintf(stderr,"Returning 200\n");
-				outputServerInfo(req->method,200,fileName + strlen(path) + 1);
-				
-				/* get filename from request */
-				/* fill outBuffer with headers */
-				/* send outBuffer and /r/f */
-				/* send file requested */
-				//strcpy(fileName, resp->full_path);  // change to real filename
-				fp = fopen(fileName, "r");
-				if (fp == NULL)
-					{
-						perror ("Error with fopen()");
-					}
-				stat(fileName, st);
-				int fileSize = st->st_size;
-				//printf("file size: %d\n", fileSize);
+				outputServerInfo(req->method, 200, fileName);
 				
 				/* add # of bytes to cLength header */
-				char sizeString[10];
+				int fileSize = st->st_size;
+				char sizeString[25];
 				sprintf(sizeString, "%d", fileSize);
 				strcat(cLength, sizeString);
 				strcat(cLength, "\r\n");
 				
-				/* fill outBuffer and send */
+				/* fill outBuffer header section */
 				char *position = outBuffer;
 				memcpy(position, "HTTP/1.1 200 OK\r\n", 17);
 				position += 17;
@@ -203,51 +198,59 @@ int main(int argc, char *argv[])
 				memcpy(position, cLength, strlen(cLength));
 				position += strlen(cLength);
 				memcpy(position, connClose, strlen(connClose));
-				printBuffer(outBuffer, 7);
+				position += strlen(connClose);
+				memcpy(position, newline, strlen(newline));
+				position += strlen(newline);		
+				printBuffer(outBuffer, 14);
 				
-				write(sock,outBuffer, 1000);
-				if (strcmp(method, "GET") == 0){
-					int x;
+				if (strcmp(req->method, "GET") == 0){
+					/*  add file data to buffer */
+					int r;
+					char *fileBuffer = position;
+					fp = fopen(fileName, "r");
+					if (fp == NULL)
+						{
+							fprintf(stderr, "Error with fopen(), errno = %d\n", errno);
+						}
 					
 					/*  Loop until EOF  */
-					for(x = 0; x < fileSize/1000; x++)
-					{
-						fread(fileBuffer, 1, 1000, fp);
-						//printf("x: %d\n", x);
-						write(sock, fileBuffer, 1000);
-					}
+					//for(x = 0; x < fileSize; x++)
+					//{
+						r = fread(fileBuffer, 1, fileSize, fp);
+						fprintf(stderr, "%d bytes read\n", r);
+						if (r != fileSize){
+							fprintf(stderr, "error in fread()\n");
+						}	
+						//write(sock, fileBuffer, 10);
+					//}
 					fclose(fp);
 				}
 
-				free(fileName);
+				int w;
+				w = write(connfd, outBuffer, fileSize + 256);
+				fprintf(stderr, "%d bytes sent\n", w);
+				//fprintf(stderr, "file sent\n");
 			}
-			
-			if (req->filename != NULL) {
-				free(req->filename);
-			}
-			if (req->filepath != NULL) {
-				free(req->filepath);
-			}
-			if (req->full_path != NULL) {
-				free(req->full_path);
-			}
-
-			free(req);
-
-			close(connfd);
-		
 		}
-	
+		
+		close(connfd);
+		free(inBuffer);
+		free(outBuffer);
+		free(st);	
+		
+		fprintf(stderr, "connection terminated\n");
 	}
-	return 0;
-}
-
-int readData(void) {
-	// int n = 0;
-// 	char *c = NULL;
-// 	while ((n < 1024) && (*c != '\n')){
-// 		c = inBuffer[n];
-// 	}
+	if (req->filename != NULL) {
+		free(req->filename);
+	}
+	if (req->filepath != NULL) {
+		free(req->filepath);
+	}
+	if (req->full_path != NULL) {
+		free(req->full_path);
+	}
+	
+	free(req);
 	return 0;
 }
 
@@ -300,7 +303,9 @@ void resp400(char *ptr) {
 	memcpy(position, serverName, strlen(serverName));
 	position += strlen(serverName);
 	memcpy(position, connClose, strlen(connClose));
-	printBuffer(ptr, 5);
+	position += strlen(connClose);
+	memcpy(position, newline, strlen(newline));
+	//printBuffer(ptr, 6);
 }
 
 
@@ -312,7 +317,9 @@ void resp403(char *ptr) {
 	memcpy(position, serverName, strlen(serverName));
 	position += strlen(serverName);
 	memcpy(position, connClose, strlen(connClose));
-	printBuffer(ptr, 4);
+	position += strlen(connClose);
+	memcpy(position, newline, strlen(newline));
+	//printBuffer(ptr, 6);
 }
 
 void resp404(char *ptr) {
@@ -323,7 +330,9 @@ void resp404(char *ptr) {
 	memcpy(position, serverName, strlen(serverName));
 	position += strlen(serverName);
 	memcpy(position, connClose, strlen(connClose));
-	printBuffer(ptr, 4);
+	position += strlen(connClose);
+	memcpy(position, newline, strlen(newline));
+	//printBuffer(ptr, 6);
 }
 
 void resp405(char *ptr) {
@@ -334,7 +343,9 @@ void resp405(char *ptr) {
 	memcpy(position, serverName, strlen(serverName));
 	position += strlen(serverName);
 	memcpy(position, connClose, strlen(connClose));
-	printBuffer(ptr, 5);
+	position += strlen(connClose);
+	memcpy(position, newline, strlen(newline));
+	//printBuffer(ptr, 7);
 }
 
 int getMime(char *ptr, char *fname) {
@@ -363,13 +374,13 @@ int getMime(char *ptr, char *fname) {
 	else {
 		strcat(cType, "application/octet-stream\r\n");
 	}
-	fprintf(stderr, "MIME Type: %s\n", cType);
-	strcat(ptr, cType);
+	//fprintf(stderr, "getMime function: %s", cType);
+	memcpy(ptr, cType, strlen(cType));
 	return strlen(cType);
 }
 
 void printBuffer(char *buf, int lines) {
-	fprintf(stderr,"======================BUFFER=========================\n");
+	fprintf(stderr,"====================%d lines of BUFFER===============\n", lines);
 	int nullNum = 0;
 	while (nullNum < lines) {
 		fprintf(stderr,"%s", buf);
@@ -379,12 +390,12 @@ void printBuffer(char *buf, int lines) {
 	fprintf(stderr,"=====================================================\n");
 }
 
-http_request_t * parseRequest(char * buf, char * dir) {
-	http_request_t * req = (http_request_t *)malloc(sizeof(http_request_t));
+http_request_t *parseRequest(char * buf, char * dir) {
+	http_request_t *req = (http_request_t *)malloc(sizeof(http_request_t));
 	bzero(req,sizeof(http_request_t));
 
 	fprintf(stderr, "Tokenizing the first line: ");
-	char * line = strtok(buf,"\r\n"), * temp_filename, * endptr;
+	char *line = strtok(buf,"\r\n"), * temp_filename, * endptr;
 
 	req->method = (char *) malloc(strlen(line));
 	req->filename = (char *) malloc(strlen(line));
@@ -405,11 +416,13 @@ http_request_t * parseRequest(char * buf, char * dir) {
 
 	fprintf(stderr, "Method: %s\nFilename: %s\nVersion: %s\n",req->method,temp_filename,req->version);
 
-	endptr = strrchr(temp_filename, '/');
+	endptr = strchr(temp_filename, '/');
+	//fprintf(stderr, "endptr + 1: %s\n", endptr + 1);
 
 	if (endptr == NULL) {
 		endptr = temp_filename;
 	}
+	
 
 	if (temp_filename[strlen(temp_filename) - 1] == '/') {
 		req->filename = (char *)malloc(strlen("index.html") + 1);
@@ -419,7 +432,7 @@ http_request_t * parseRequest(char * buf, char * dir) {
 	else {
 		req->filename = (char *)malloc(strlen(endptr) + 1);
 		bzero(req->filename,strlen(endptr) + 1);
-		strcpy(req->filename,endptr);
+		strcpy(req->filename,endptr +1);
 	}
 
 	strcpy(req->filepath, dir);
@@ -442,7 +455,7 @@ http_request_t * parseRequest(char * buf, char * dir) {
 	return req;
 }
 
-void outputServerInfo(char * method,int status,char * file) {
+void outputServerInfo(char *method,int status,char *file) {
 	time_t t = time(NULL);
 	struct tm * datetime = localtime(&t);
 	char timebuf[256];
